@@ -8,6 +8,7 @@ import { config } from '../config';
 import { WageringService } from '../wagering/wagering.service';
 import { InboxMessageEntity } from './inbox.entity';
 import { retryDelaySeconds } from './retry-delay';
+import { traced } from '../trace';
 import { SqsQueue, type ReceivedMessage } from './sqs.client';
 
 const CONSUMER = 'wagering-processor';
@@ -37,6 +38,10 @@ export class WageringConsumer {
   }
 
   async settle(body: string, messageId: string): Promise<Delivery> {
+    return traced('wager.consume', { messageId }, () => this.readDelivery(body, messageId));
+  }
+
+  private async readDelivery(body: string, messageId: string): Promise<Delivery> {
     let parsed: unknown;
     try {
       parsed = JSON.parse(body);

@@ -4,3 +4,5 @@ dist
 *.log
 .DS_Store
 documentacao/readme.md
+docker/zitadel/*.json
+docker/zitadel/*.pat

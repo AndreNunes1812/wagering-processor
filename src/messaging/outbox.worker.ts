@@ -4,6 +4,7 @@ import { Metrics } from '../metrics';
 import { logWarn } from '../log';
 import { OutboxMessage } from './outbox-message';
 import { OutboxMessageEntity } from './outbox.entity';
+import { traced } from '../trace';
 import { SqsQueue } from './sqs.client';
 
 @Injectable()
@@ -49,7 +50,9 @@ export class OutboxWorker {
       );
       if (!row) return false;
       try {
-        await this.sqs.publishEvent(row.payload, row.aggregateId, row.id);
+        await traced('outbox.publish', { eventId: row.id, aggregateId: row.aggregateId }, () =>
+          this.sqs.publishEvent(row.payload, row.aggregateId, row.id),
+        );
         row.publishedAt = now;
         row.nextAttemptAt = null;
       } catch (error) {

@@ -12,6 +12,10 @@ export const config = {
     password: env('DB_PASSWORD', 'wagering'),
     name: env('DB_NAME', 'wagering'),
   },
+  oidc: {
+    issuer: env('OIDC_ISSUER', 'http://localhost:8081'),
+    jwksUrl: env('OIDC_JWKS_URL', 'http://localhost:8081/oauth/v2/keys'),
+  },
   sqs: {
     region: env('AWS_REGION', 'us-east-1'),
     endpoint: env('SQS_ENDPOINT', 'http://localhost:4566'),

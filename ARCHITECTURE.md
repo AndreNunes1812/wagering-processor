@@ -46,8 +46,8 @@ O consumidor da `wager-transactions.fifo` chama o mesmo caso de uso do HTTP. Rej
 
 ## Auth
 
-Não há IdP. A tabela de avaliação não pontua autenticação, e um provedor artesanal competiria com o dinheiro. `AuthGuard` deixa a requisição passar e é o lugar onde um OIDC (Keycloak, por exemplo) entraria. Health fica aberto. Mensagem da fila é canal interno; o `providerId` do corpo continua sujeito às regras da carteira.
+O IdP é o Zitadel do Compose, na porta 8081, com o Postgres que o projeto já sobe. O `AuthGuard` valida o access token nas chaves públicas de `http://localhost:8081/oauth/v2/keys`. Health fica aberto. O resto da API exige `Authorization: Bearer`. O token do roteiro sai de `bun run token`, assinado com a chave da conta de serviço `wagering-api`. Mensagem da fila continua canal interno e não carrega token; o `providerId` do corpo segue sujeito às regras da carteira.
 
 ## Limites
 
-Não há estorno parcial. `REFUND` e `ROLLBACK` da mesma aposta são operações diferentes e as duas podem ser aplicadas. A publicação é at-least-once. Não há OpenTelemetry. O teste de carga é `bun run test:load` e o registro fica em `documentacao/carga.md`: um processo, várias transações ao mesmo tempo, Postgres e LocalStack na mesma máquina. Não mede HTTP nem várias instâncias. A reconciliação aponta divergência, soma `wallet_reconciliation_divergences_total` e não corrige sozinha.
+Não há estorno parcial. `REFUND` e `ROLLBACK` da mesma aposta são operações diferentes e as duas podem ser aplicadas. A publicação é at-least-once. O OpenTelemetry escreve o trace de `wager.submit`, `wager.consume` e `outbox.publish` no stdout do processo. Não há collector nem dashboard. O teste de carga é `bun run test:load` e o registro fica em `documentacao/carga.md`: um processo, várias transações ao mesmo tempo, Postgres e LocalStack na mesma máquina. Não mede HTTP nem várias instâncias. A reconciliação aponta divergência, soma `wallet_reconciliation_divergences_total` e não corrige sozinha.

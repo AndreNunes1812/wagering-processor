@@ -25,6 +25,7 @@ import {
 import { Metrics } from '../metrics';
 import { retryDelaySeconds } from '../messaging/retry-delay';
 import { Money } from '../money/money';
+import { traced } from '../trace';
 import { asRecord, fail, readMoney, readUuid } from '../wallet/wallet.service';
 import { WalletEntity } from '../wallet/wallet.entity';
 import { FailureCode } from './failure-code';
@@ -64,6 +65,12 @@ export class WageringService {
 
   async submit(idempotencyKey: string | undefined, body: unknown, correlationId?: string): Promise<ApiResult> {
     const input = parseSubmit(body, idempotencyKey);
+    return traced('wager.submit', { kind: input.kind, walletId: input.walletId }, () =>
+      this.finishSubmit(input, correlationId),
+    );
+  }
+
+  private async finishSubmit(input: SubmitInput, correlationId?: string): Promise<ApiResult> {
     const started = performance.now();
     for (let attempt = 0; attempt < 2; attempt++) {
       try {

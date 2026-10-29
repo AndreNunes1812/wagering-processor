@@ -21,20 +21,25 @@ bun run start:dev
 
 Se o `source` não resolver, use `export PATH="$HOME/.bun/bin:$PATH"` e repita os três comandos. Um terminal novo já lê isso do `~/.zshrc`.
 
-Postgres no host é a porta `5434`. As filas são `wager-transactions.fifo`, `wager-transactions-dlq.fifo` e `wager-events.fifo` no LocalStack (`localhost:4566`).
+Postgres no host é a porta `5434`. O Zitadel fica em `localhost:8081`. As filas são `wager-transactions.fifo`, `wager-transactions-dlq.fifo` e `wager-events.fifo` no LocalStack (`localhost:4566`).
 
 O banco já tem linhas de execuções anteriores da suíte. Isso não atrapalha: cada carteira nova é de um jogador novo. No log podem aparecer rejeições de referências velhas. São restos, não o seu cenário.
 
-`bun run start:dev` ocupa esse terminal. Abra outro. `api` não é um programa instalado: é uma função daquele shell. Sem colar o bloco abaixo, o zsh responde `command not found: api`.
+`bun run start:dev` ocupa esse terminal. Abra outro. Espere o Zitadel responder em `http://localhost:8081/oauth/v2/keys` e pegue o token. `api` não é um programa instalado: é uma função daquele shell. Sem colar o bloco abaixo, o zsh responde `command not found: api`.
 
 ```sh
+curl -sS -w "\nHTTP %{http_code}\n" http://localhost:3000/health/live
+TOKEN=$(bun run token)
 api() {
   curl -sS -w "\nHTTP %{http_code}\n" -X "$1" "http://localhost:3000$2" \
-    -H 'content-type: application/json' "${@:3}"
+    -H 'content-type: application/json' \
+    -H "authorization: Bearer $TOKEN" "${@:3}"
 }
 PLAYER=$(uuidgen | tr '[:upper:]' '[:lower:]')
 echo "$PLAYER"
 ```
+
+O `curl` do health, sem token, responde 200. O `POST /wallets` sem o header responde 401. As chamadas seguintes usam `api` e levam o token. O trace aparece no terminal da API.
 
 Dinheiro vai sempre como string com duas casas (`"40.00"`). Um número JSON no amount é payload inválido.
 
@@ -49,6 +54,7 @@ Dinheiro vai sempre como string com duas casas (`"40.00"`). Um número JSON no a
 | 409 | mesma carteira de novo, ou a mesma chave com outro payload |
 | 400 | payload inválido |
 | 404 | carteira ou transação que não existe |
+| 401 | token ausente ou inválido |
 | 503 | Postgres ou fila fora |
 
 ## 1. Processo e dependências
@@ -63,6 +69,18 @@ api GET /health/ready
 `live` só diz que o processo responde. `ready` fala com o Postgres e com as filas. Os dois ficam sem autenticação.
 
 ## 2. Abrir a carteira
+
+Sem o token a carteira não abre:
+
+```sh
+curl -sS -w "\nHTTP %{http_code}\n" -X POST http://localhost:3000/wallets \
+  -H 'content-type: application/json' \
+  -d "{\"playerId\":\"$PLAYER\",\"initialBalance\":{\"amount\":\"100.00\",\"currency\":\"BRL\"}}"
+```
+
+Esperado: HTTP 401.
+
+Com o token:
 
 ```sh
 api POST /wallets -d "{\"playerId\":\"$PLAYER\",\"initialBalance\":{\"amount\":\"100.00\",\"currency\":\"BRL\"}}"

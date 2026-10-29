@@ -10,7 +10,15 @@ docker compose up -d
 
 Se o plugin não estiver instalado, use `docker-compose up -d`. O Postgres do Compose fica na porta 5434 do host.
 
-Sobe PostgreSQL 16 e LocalStack com as filas `wager-transactions.fifo`, `wager-transactions-dlq.fifo` e `wager-events.fifo`.
+Sobe PostgreSQL 16, Zitadel na porta 8081 e LocalStack com as filas `wager-transactions.fifo`, `wager-transactions-dlq.fifo` e `wager-events.fifo`.
+
+O Zitadel usa o mesmo Postgres. A conta de serviço é `wagering-api`. Health não pede token. O restante da API pede o access token:
+
+```sh
+bun run token
+```
+
+O trace do OpenTelemetry sai no log do processo (`wager.submit`, `wager.consume`, `outbox.publish`). Não há dashboard.
 
 ## API
 
